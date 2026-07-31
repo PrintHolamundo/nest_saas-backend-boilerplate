@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MongoDbModule } from './mongodb/mongodb.module';
 
 // Config
 import {
@@ -75,12 +76,17 @@ import { AdminModule } from './modules/admin/admin.module';
       }),
     }),
 
-    // ─── Core ─────────────────────────────────────────────────────────────────
+    // ─── Core ────────────────────────────────────────────────────────────────
     PrismaModule,
+
+    ...(process.env.MONGODB_ENABLED === 'true'
+      ? [MongoDbModule.forRoot()]
+      : []),
+
     LoggerModule,
     CacheModule,
 
-    // ─── Feature Modules ──────────────────────────────────────────────────────
+    // ─── Feature Modules ─────────────────────────────────────────────────────
     AuthModule,
     UsersModule,
     CompaniesModule,
@@ -98,6 +104,7 @@ import { AdminModule } from './modules/admin/admin.module';
       global: true,
     }),
   ],
+
   providers: [
     // Global rate limiting
     { provide: APP_GUARD, useClass: ThrottlerGuard },
