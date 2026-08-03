@@ -10,7 +10,7 @@ Production-ready NestJS backend for multi-tenant SaaS applications. Includes JWT
 |---|---|
 | Framework | NestJS 11 |
 | Language | TypeScript 5 |
-| Database | PostgreSQL 16 + Prisma ORM 7 |
+| Database | PostgreSQL 17 + Prisma ORM 7 + MongoDB 8 (Mongoose) |
 | Auth | JWT access + refresh (secure rotation) |
 | Payments | Stripe (subscriptions, checkout, webhooks) |
 | Storage | AWS S3 (file uploads + company logos) |
@@ -40,6 +40,7 @@ src/
 │   ├── cache/                # Global CacheService (Redis get/set/del/incr/ttl)
 │   └── logger/               # Structured JSON logger
 ├── prisma/                   # PrismaModule (global)
+├── mongodb/                  # MongoDB module (Mongoose connection)
 └── modules/
     ├── auth/                 # Register, login, refresh, logout, change-password, accept-invite
     ├── users/                # CRUD + /users/me self-service
@@ -111,6 +112,13 @@ AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_S3_BUCKET=your-dev-bucket
 SES_FROM_EMAIL=dev@yourdomain.com
+
+# MongoDB
+MONGODB_ENABLED=false
+MONGO_ROOT_USERNAME=root
+MONGO_ROOT_PASSWORD=password
+MONGO_DATABASE=saas_db
+MONGO_PORT=27017
 ```
 
 > **Tip — skip AWS locally:** Set `SES_FROM_EMAIL` to any value and the email service will log emails to the console instead of sending them when SES is not configured. For S3, use [MinIO](#local-s3-with-minio-optional).
@@ -119,7 +127,7 @@ SES_FROM_EMAIL=dev@yourdomain.com
 
 ```bash
 # Start only the database and Redis (not the app itself)
-docker-compose up -d postgres redis
+docker-compose up -d
 ```
 
 Verify they are healthy:
@@ -229,9 +237,15 @@ Create the bucket via the MinIO Console at `http://localhost:9001` (login: `mini
 
 ---
 
-## Docker (full stack)
+## Docker
 
-To run the entire stack (API + PostgreSQL + Redis) with Docker:
+Docker Compose is used to provision the local infrastructure required by the application.
+
+Services included:
+
+- PostgreSQL 17
+- Redis 7
+- MongoDB 8
 
 ```bash
 # Build and start all services
@@ -530,6 +544,15 @@ npm run test:e2e
 |---|---|---|
 | `DATABASE_URL` | ✓ | PostgreSQL connection string |
 
+### MongoDB
+
+| Variable | Required | Description |
+|---|---|---|
+| `MONGO_ROOT_USERNAME` | ✓ | MongoDB root username |
+| `MONGO_ROOT_PASSWORD` | ✓ | MongoDB root password |
+| `MONGO_DATABASE` | ✓ | Default database name |
+| `MONGO_PORT` | — | MongoDB exposed port (default: `27017`) |
+
 ### JWT
 
 | Variable | Required | Description |
@@ -753,6 +776,7 @@ server {
 - [ ] `CORS_ORIGINS` is set to your exact frontend domain(s) — no wildcards
 - [ ] Stripe live keys in place (`sk_live_…`), webhook endpoint registered
 - [ ] `REDIS_PASSWORD` is set — Redis is not exposed to the public internet
+- [ ] MongoDB credentials configured if MongoDB is used
 - [ ] Database is on a managed service (RDS / Supabase / Cloud SQL) with daily backups
 - [ ] Run `db:migrate:deploy` (not `db:migrate`) — never run `db:reset` in production
 - [ ] SSL/TLS termination at the reverse proxy (Nginx / Caddy / load balancer)
